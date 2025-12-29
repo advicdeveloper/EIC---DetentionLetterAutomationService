@@ -1,0 +1,151 @@
+{
+  "name": "Scheduled Detention Letter Processing",
+  "description": "Power Automate Cloud Flow to trigger Detention Letter Plugin on a schedule (mimics Windows Service timer)",
+  "trigger": {
+    "type": "Recurrence",
+    "details": {
+      "interval": 30,
+      "frequency": "Minute",
+      "timeZone": "Eastern Standard Time",
+      "startTime": "2024-01-01T00:00:00Z"
+    },
+    "notes": "Adjust interval to match original TimerValue from App.config"
+  },
+  "actions": [
+    {
+      "name": "Process_Detention_Letters",
+      "type": "Microsoft.Dynamics.CRM.PerformUnboundAction",
+      "inputs": {
+        "actionName": "new_ProcessDetentionLetters",
+        "parameters": {}
+      },
+      "notes": [
+        "This calls the custom action that triggers the plugin",
+        "The custom action must be created in Dynamics 365 first",
+        "No parameters needed - plugin gets all pending orders automatically"
+      ]
+    },
+    {
+      "name": "Handle_Success",
+      "type": "Condition",
+      "inputs": {
+        "condition": "@equals(outputs('Process_Detention_Letters')['statusCode'], 200)",
+        "ifTrue": {
+          "actions": [
+            {
+              "name": "Log_Success",
+              "type": "Compose",
+              "inputs": {
+                "message": "Detention letters processed successfully",
+                "timestamp": "@utcNow()"
+              }
+            }
+          ]
+        },
+        "ifFalse": {
+          "actions": [
+            {
+              "name": "Send_Error_Notification",
+              "type": "Office365.SendEmail",
+              "inputs": {
+                "to": "admin@yourcompany.com",
+                "subject": "Detention Letter Processing Failed",
+                "body": "The scheduled detention letter processing encountered an error. Please check plugin trace logs in Dynamics 365.",
+                "importance": "High"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "instructions": [
+    "1. Create this flow in Power Automate (make.powerautomate.com)",
+    "2. Connect to your Dynamics 365 environment",
+    "3. Update the recurrence interval to match your requirements",
+    "4. Update email addresses for notifications",
+    "5. Save and turn on the flow",
+    "6. Monitor flow run history for any errors"
+  ],
+  "alternativeApproaches": {
+    "approach1": {
+      "name": "Azure Logic Apps",
+      "description": "Use Azure Logic Apps for more advanced scheduling and error handling",
+      "benefits": [
+        "More control over retry policies",
+        "Advanced error handling",
+        "Better integration with Azure services",
+        "Can run on-premise data gateway if needed"
+      ]
+    },
+    "approach2": {
+      "name": "Recurring Workflow",
+      "description": "Create a recurring workflow in Dynamics 365",
+      "benefits": [
+        "Native to Dynamics 365",
+        "No separate Power Automate license needed",
+        "Runs entirely within D365 environment"
+      ],
+      "limitations": [
+        "Limited scheduling options compared to Power Automate",
+        "Less flexible error handling"
+      ]
+    },
+    "approach3": {
+      "name": "Azure Function Timer Trigger",
+      "description": "Use Azure Functions with timer trigger to call Dynamics 365 API",
+      "benefits": [
+        "Full code control",
+        "Can implement complex retry logic",
+        "Good for hybrid scenarios",
+        "Can handle high-volume processing"
+      ],
+      "example": "See AzureFunctionSample.cs for implementation"
+    }
+  },
+  "monitoring": {
+    "powerAutomate": {
+      "location": "make.powerautomate.com > My flows > [Flow Name] > Run history",
+      "checkFor": [
+        "Failed runs",
+        "Duration (should be consistent)",
+        "Action outputs"
+      ]
+    },
+    "dynamics365": {
+      "location": "Settings > Customizations > Plug-in Trace Log",
+      "checkFor": [
+        "Plugin execution logs",
+        "Error messages",
+        "Processing time",
+        "Number of orders processed"
+      ]
+    },
+    "applicationLogs": {
+      "location": "Your logging system (based on Logger class implementation)",
+      "checkFor": [
+        "Processing details per order",
+        "Email send status",
+        "Report generation status",
+        "Errors and exceptions"
+      ]
+    }
+  },
+  "troubleshooting": {
+    "flowNotTriggering": [
+      "Check flow is turned ON",
+      "Verify recurrence schedule is correct",
+      "Check Dynamics 365 connection is valid"
+    ],
+    "pluginTimeout": [
+      "Consider reducing batch size",
+      "Use asynchronous plugin execution",
+      "Optimize database queries in business logic"
+    ],
+    "emailNotSending": [
+      "Verify SMTP configuration",
+      "Check email addresses are valid",
+      "Review email service quotas"
+    ]
+  }
+}
