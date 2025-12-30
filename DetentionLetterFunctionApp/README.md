@@ -1,25 +1,45 @@
 # Detention Letter Automation - Azure Function
 
-This Azure Function replaces the Windows Service implementation for automated detention letter processing and delivery.
+This Azure Function automates the processing and delivery of detention letters using Dynamics 365 Online and Azure Functions.
 
-## Overview
+## Architecture
 
-This function is triggered on a timer schedule and processes pending detention letters by:
-1. Retrieving pending orders from the database
-2. Generating detention letter reports
-3. Sending emails with appropriate attachments to customers
-4. Updating order status in the system
+The application follows a clean architecture pattern with separation of concerns:
 
-## Project Structure
+### Models (`/Models`)
+Entity classes representing the business domain:
+- `OrderSummary` - Sales order information
+- `OrderHistory` - History of detention letter processing
+- `User` - User information from Dynamics 365
+- `LettersType` - Enumeration of available letter types
 
-- `DetentionLetterTimerFunction.cs` - Main timer-triggered function
-- `DetentionLetterProcessor.cs` - Core business logic for processing detention letters
-- `Logger.cs` - Logging utility using log4net
-- `Startup.cs` - Dependency injection configuration
+### Services (`/Services`)
+Business logic and external integrations:
+- `IDynamics365Service` / `Dynamics365Service` - Dynamics 365 Online integration via Web API
+- `IReportService` / `ReportService` - Report generation and file management
+- `IEmailService` / `EmailService` - Email sending functionality
+- `IDetentionLetterService` / `DetentionLetterService` - Core business logic orchestration
+
+### Controllers (`/Controllers`)
+Entry points for Azure Functions:
+- `DetentionLetterController` - Timer-triggered function that processes detention letters
+
+## Process Flow
+
+1. Timer trigger activates the function based on schedule
+2. Controller calls the Detention Letter Service
+3. Service retrieves pending orders from Dynamics 365
+4. For each order:
+   - Determines required report types
+   - Creates order history records in Dynamics 365
+   - Generates PDF reports
+   - Saves reports to document path
+   - Sends email with attachments
+   - Updates order status in Dynamics 365
 
 ## Configuration
 
-### Local Development
+### Local Development Settings
 
 Configure `local.settings.json` with the following settings:
 
@@ -30,25 +50,40 @@ Configure `local.settings.json` with the following settings:
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
     "TimerSchedule": "0 */30 * * * *",
-    "ConnectionString": "YOUR_CONNECTION_STRING_HERE",
+    "Dynamics365:ApiUrl": "https://YOUR_ORG.api.crm.dynamics.com/api/data/v9.2/",
+    "Dynamics365:AccessToken": "YOUR_ACCESS_TOKEN",
     "EmailSettings:SmtpServer": "YOUR_SMTP_SERVER",
     "EmailSettings:SmtpPort": "587",
     "EmailSettings:EnableSsl": "true",
     "EmailSettings:FromEmail": "YOUR_FROM_EMAIL",
     "EmailSettings:Username": "YOUR_EMAIL_USERNAME",
     "EmailSettings:Password": "YOUR_EMAIL_PASSWORD",
-    "CRMReportExecution:Url": "http://psuwconwcrmd01.quikrete.net/ReportServer/ReportExecution2005.asmx"
+    "ReportSettings:ReportWebURL": "YOUR_REPORT_SERVER_URL"
   }
 }
 ```
 
-### Azure Deployment
+### Azure Application Settings
 
-Configure the following Application Settings in your Azure Function App:
-- `TimerSchedule` - CRON expression for the timer (default: every 30 minutes)
-- `ConnectionString` - Database connection string
-- `EmailSettings:*` - SMTP configuration for sending emails
-- `CRMReportExecution:Url` - CRM report execution URL
+When deploying to Azure, configure these settings in the Function App:
+
+#### Timer Configuration
+- `TimerSchedule` - CRON expression (default: `0 */30 * * * *` for every 30 minutes)
+
+#### Dynamics 365 Settings
+- `Dynamics365:ApiUrl` - Dynamics 365 Web API endpoint (e.g., `https://yourorg.api.crm.dynamics.com/api/data/v9.2/`)
+- `Dynamics365:AccessToken` - OAuth token for Dynamics 365 authentication
+
+#### Email Settings
+- `EmailSettings:SmtpServer` - SMTP server address
+- `EmailSettings:SmtpPort` - SMTP port (default: 587)
+- `EmailSettings:EnableSsl` - Enable SSL/TLS (true/false)
+- `EmailSettings:FromEmail` - Sender email address
+- `EmailSettings:Username` - SMTP username
+- `EmailSettings:Password` - SMTP password
+
+#### Report Settings
+- `ReportSettings:ReportWebURL` - Report server URL for generating detention letter reports
 
 ## Timer Schedule
 
@@ -61,11 +96,26 @@ Examples:
 - Every 2 hours: `0 0 */2 * * *`
 - Daily at 9 AM: `0 0 9 * * *`
 
+## Letter Types
+
+The system supports the following detention letter types:
+- CMP Large Diameter Letter
+- CMP Detention Letter
+- DuroMaxx Cistern RWH Letter
+- DuroMaxx Containment Tank Notification Letter
+- DuroMaxx Large Diameter Letter
+- DuroMaxx Detention Letter
+- DuroMaxx Sewer Letter
+
+Each letter type includes specific installation guide PDFs as attachments.
+
 ## Dependencies
 
-This function references the following existing projects:
-- `BusinessEntities` - Data models
-- `BusinessLogic` - Business logic layer
+- .NET 6.0
+- Microsoft.NET.Sdk.Functions
+- Microsoft.Azure.Functions.Extensions
+- Microsoft.Extensions.Http
+- System.Text.Json
 
 ## Deployment
 
@@ -98,20 +148,26 @@ This function references the following existing projects:
 
    Or press F5 in Visual Studio.
 
-## Logging
+## Features
 
-- Logs are written to both Azure Application Insights and local log files
-- Log files are stored in the `logs/` directory
-- Log4net configuration is in `log4net.config`
+1. **Dynamics 365 Integration**: Direct integration with Dynamics 365 Online via Web API (no SQL required)
+2. **Timer-Based Processing**: Automatically processes pending detention letters on schedule
+3. **Report Generation**: Generates detention letter PDF reports
+4. **Email Delivery**: Sends emails with detention letters and installation guides
+5. **Status Tracking**: Updates order status in Dynamics 365
 
-## Migration from Windows Service
+## Monitoring
 
-This Azure Function provides the same functionality as the original Windows Service but with the following improvements:
-- Cloud-native deployment
-- Better scalability
-- Integrated monitoring with Application Insights
-- Easier configuration management
-- No server maintenance required
+- View logs in Azure Application Insights
+- Monitor function executions in Azure Portal
+- Check email delivery status in logs
+
+## Security
+
+- Access tokens should be stored in Azure Key Vault
+- Use Managed Identity for Azure resource access
+- Enable HTTPS only for API calls
+- Rotate credentials regularly
 
 ## Support
 
