@@ -66,13 +66,13 @@ OrderNumber: @{triggerOutputs()?['body/crmgp_ordernumber']}
 
 In the "If yes" branch, add the following actions:
 
-#### A. Initialize Product Families Variable
+#### A. Initialize Word Templates Variable
 
 1. Add action: "Initialize variable"
 2. Configure:
-   - **Name**: `ProductFamilies`
+   - **Name**: `WordTemplates`
    - **Type**: String
-   - **Value**: `@{outputs('Perform_an_unbound_action')?['body/ProductFamilies']}`
+   - **Value**: `@{outputs('Perform_an_unbound_action')?['body/WordTemplates']}`
 
 #### B. Initialize User Email Variable
 
@@ -82,15 +82,15 @@ In the "If yes" branch, add the following actions:
    - **Type**: String
    - **Value**: `@{outputs('Perform_an_unbound_action')?['body/UserEmail']}`
 
-#### C. Compose Product Family List (for logging/debugging)
+#### C. Compose Word Template List (for logging/debugging)
 
 1. Add action: "Compose"
 2. Configure:
    - **Inputs**:
    ```json
    {
-     "ProductFamilies": "@{variables('ProductFamilies')}",
-     "ProductFamiliesCount": "@{outputs('Perform_an_unbound_action')?['body/ProductFamiliesCount']}",
+     "WordTemplates": "@{variables('WordTemplates')}",
+     "WordTemplatesCount": "@{outputs('Perform_an_unbound_action')?['body/WordTemplatesCount']}",
      "UserEmail": "@{variables('UserEmail')}",
      "UserName": "@{outputs('Perform_an_unbound_action')?['body/UserName']}",
      "UserFullName": "@{outputs('Perform_an_unbound_action')?['body/UserFullName']}",
@@ -101,25 +101,30 @@ In the "If yes" branch, add the following actions:
 #### D. Add Your Business Logic Here
 
 This is where you would add additional steps such as:
-- Selecting appropriate Word templates based on Product Families
-- Generating documents
+- Using the Word Templates list to generate appropriate documents
 - Sending emails to the user
 - Updating records
 - etc.
 
-**Example: Select Word Template Based on Product Families**
+**Example: Generate Documents Based on Word Templates**
 
-You can use a Switch or nested Conditions based on the product families:
+The custom action returns specific template names that you can use directly:
 
 ```
-If ProductFamilies contains "Pipe"
-  Use Template A
-Else If ProductFamilies contains "Fittings"
-  Use Template B
-Else If ProductFamilies contains "Valves"
-  Use Template C
-Else
-  Use Default Template
+Templates could include:
+- CMPDetentionLetter
+- CMPLargeDiameterLetter
+- DuroMaxxDetentionLetter
+- DuroMaxxLgDiameterLetter
+- DuroMaxxCisternRWHLetter
+- DuroMaxxContainmentTankNotificationLetter
+- DuroMaxxSewerLetter
+- ArmortecSubmittal
+
+You can use Apply to Each to iterate through the templates:
+For Each template in WordTemplates.Split(',')
+  Generate document using template
+  Attach to email or save to SharePoint
 ```
 
 ### Step 6: Configure Failure Branch
@@ -249,8 +254,8 @@ After the custom action runs successfully, you can access these outputs:
 
 | Output Parameter | Expression | Example Value |
 |-----------------|------------|---------------|
-| Product Families | `@{outputs('Get_Detention_Order_Data')?['body/ProductFamilies']}` | "Pipe, Fittings, Valves" |
-| Product Families Count | `@{outputs('Get_Detention_Order_Data')?['body/ProductFamiliesCount']}` | 3 |
+| Word Templates | `@{outputs('Get_Detention_Order_Data')?['body/WordTemplates']}` | "CMPDetentionLetter, DuroMaxxDetentionLetter" |
+| Word Templates Count | `@{outputs('Get_Detention_Order_Data')?['body/WordTemplatesCount']}` | 2 |
 | User Email | `@{outputs('Get_Detention_Order_Data')?['body/UserEmail']}` | "john.doe@company.com" |
 | User Name | `@{outputs('Get_Detention_Order_Data')?['body/UserName']}` | "jdoe" |
 | User Full Name | `@{outputs('Get_Detention_Order_Data')?['body/UserFullName']}` | "John Doe" |
@@ -260,15 +265,16 @@ After the custom action runs successfully, you can access these outputs:
 
 ## Common Use Cases
 
-### Use Case 1: Select Word Template Based on Product Family
+### Use Case 1: Generate Documents for Each Template
 
 ```
-Condition: @{contains(variables('ProductFamilies'), 'Pipe')}
-If yes: Use Pipe Template
-If no:
-  Condition: @{contains(variables('ProductFamilies'), 'Fittings')}
-  If yes: Use Fittings Template
-  ...
+Apply to each: @{split(variables('WordTemplates'), ', ')}
+  Current item = Template Name (e.g., "CMPDetentionLetter")
+
+  Action: Generate document from template
+  Template Name: @{items('Apply_to_each')}
+
+  Action: Save document or attach to email
 ```
 
 ### Use Case 2: Send Notification to SESell1 User
@@ -276,23 +282,27 @@ If no:
 ```
 Send Email (V2)
 To: @{outputs('Get_Detention_Order_Data')?['body/UserEmail']}
-Subject: Detention Order Notification
+Subject: Detention Order Notification - Documents Ready
 Body: Dear @{outputs('Get_Detention_Order_Data')?['body/UserFullName']},
 
-      Your detention order for products: @{outputs('Get_Detention_Order_Data')?['body/ProductFamilies']}
-      has been processed.
+      Your detention order has been processed.
+      The following documents have been generated:
+      @{outputs('Get_Detention_Order_Data')?['body/WordTemplates']}
+
+      Total documents: @{outputs('Get_Detention_Order_Data')?['body/WordTemplatesCount']}
 ```
 
-### Use Case 3: Update CRM Record with Product Info
+### Use Case 3: Update CRM Record with Template Info
 
 ```
 Update a record (Dynamics 365)
 Table: Detention Order Summaries
 Record ID: @{triggerOutputs()?['body/crmgp_detentionordersummaryid']}
 Fields:
-  - Product Families: @{outputs('Get_Detention_Order_Data')?['body/ProductFamilies']}
-  - Product Count: @{outputs('Get_Detention_Order_Data')?['body/ProductFamiliesCount']}
+  - Templates Generated: @{outputs('Get_Detention_Order_Data')?['body/WordTemplates']}
+  - Template Count: @{outputs('Get_Detention_Order_Data')?['body/WordTemplatesCount']}
   - Assigned User: @{outputs('Get_Detention_Order_Data')?['body/UserEmail']}
+  - Processing Status: "Completed"
 ```
 
 ## Debugging Tips

@@ -8,9 +8,10 @@ This project contains a custom Dynamics 365 workflow action that can be called f
 
 When a record is created in `crmgp_detentionordersummary`, Power Automate can call this custom action to:
 1. Get all sales order products for the specified order
-2. Extract unique product families (for Word template selection)
-3. Retrieve SESell1 user details
-4. Return structured data for further processing
+2. Analyze products using complex business rules to determine required Word templates
+3. Generate unique list of template names based on product family, part numbers, and specifications
+4. Retrieve SESell1 user details
+5. Return structured data for further processing
 
 ## Input Parameters
 
@@ -23,8 +24,8 @@ When a record is created in `crmgp_detentionordersummary`, Power Automate can ca
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| Product Families | String | Comma-separated list of unique product families |
-| Product Families Count | Integer | Number of unique product families found |
+| Word Templates | String | Comma-separated list of required Word template names |
+| Word Templates Count | Integer | Number of unique Word templates needed |
 | User Email | String | Email address of the SESell1 user |
 | User Name | String | Username of the SESell1 user |
 | User Full Name | String | Full name of the SESell1 user |
@@ -133,17 +134,31 @@ The custom action returns the following that you can use in subsequent steps:
 
 ## Logic Implementation
 
-### Unique Product Families
+### Word Template Selection
 
-The action retrieves all products for a sales order and extracts unique product families:
+The action uses sophisticated business logic to determine which Word templates are needed:
 
 1. Queries `salesorderdetail` table via stored procedure `GetDetentionOrderProducts`
-2. Extracts `ProductFamily` column from all rows
-3. Removes duplicates using HashSet
-4. Sorts alphabetically
-5. Returns as comma-separated string
+2. For each product, applies complex analysis based on:
+   - **Product Family** (e.g., "CMP Detention", "DuroMaxx Detention", "UrbanGreen SRPE Cistern")
+   - **Part Number parsing** to extract diameter, corrugation, grade, gage specifications
+   - **Large diameter calculations** using specific rules for different pipe types
+   - **Shape and other product attributes**
 
-This unique list can be used to determine which Word templates to use for document generation.
+3. Based on conditions, determines which template(s) are needed:
+   - **ArmortecSubmittal** - For Armortec products
+   - **CMPDetentionLetter** - For CMP Detention products (including Voidsaver and xFiltration variants)
+   - **CMPLargeDiameterLetter** - For large diameter CMP pipes (based on corrugation, diameter, grade)
+   - **DuroMaxxCisternRWHLetter** - For UrbanGreen SRPE Cistern and UGM products
+   - **DuroMaxxContainmentTankNotificationLetter** - For DuroMaxx Containment Tank
+   - **DuroMaxxDetentionLetter** - For DuroMaxx Detention (including VoidSaver variant)
+   - **DuroMaxxLgDiameterLetter** - For large diameter DuroMaxx pipes (diameter > 72")
+   - **DuroMaxxSewerLetter** - For DuroMaxx Sewer products
+
+4. Returns unique list (duplicates automatically removed via `Distinct()`)
+5. Template names returned as comma-separated string
+
+This logic reuses the existing `GetDetentionLetterReport.GetReportListForDownload` method to ensure consistency with the Windows Service implementation.
 
 ### SESell1 User Details
 

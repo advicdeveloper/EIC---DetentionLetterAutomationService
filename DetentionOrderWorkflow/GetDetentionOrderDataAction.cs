@@ -31,11 +31,11 @@ namespace CONTECH.Service.Workflow
 
         #region Output Parameters
 
-        [Output("Product Families")]
-        public OutArgument<string> ProductFamilies { get; set; }
+        [Output("Word Templates")]
+        public OutArgument<string> WordTemplates { get; set; }
 
-        [Output("Product Families Count")]
-        public OutArgument<int> ProductFamiliesCount { get; set; }
+        [Output("Word Templates Count")]
+        public OutArgument<int> WordTemplatesCount { get; set; }
 
         [Output("User Email")]
         public OutArgument<string> UserEmail { get; set; }
@@ -81,10 +81,10 @@ namespace CONTECH.Service.Workflow
                     throw new InvalidPluginExecutionException("Sales Order Id is required");
                 }
 
-                // Get all sales order products and extract unique product families
-                List<string> uniqueProductFamilies = GetUniqueProductFamilies(salesOrderId, tracingService);
+                // Get word template list based on product analysis
+                List<string> wordTemplateList = GetWordTemplateList(salesOrderId, tracingService);
 
-                tracingService.Trace($"Found {uniqueProductFamilies.Count} unique product families");
+                tracingService.Trace($"Found {wordTemplateList.Count} word templates needed");
 
                 // Get SESell1 user details if order number is provided
                 BE.Users userDetails = null;
@@ -95,8 +95,8 @@ namespace CONTECH.Service.Workflow
                 }
 
                 // Set output parameters
-                ProductFamilies.Set(executionContext, string.Join(", ", uniqueProductFamilies));
-                ProductFamiliesCount.Set(executionContext, uniqueProductFamilies.Count);
+                WordTemplates.Set(executionContext, string.Join(", ", wordTemplateList));
+                WordTemplatesCount.Set(executionContext, wordTemplateList.Count);
 
                 if (userDetails != null)
                 {
@@ -131,48 +131,38 @@ namespace CONTECH.Service.Workflow
         }
 
         /// <summary>
-        /// Get unique product families from sales order products
+        /// Get word template list based on product analysis
+        /// Uses the same logic as GetDetentionLetterReport.GetReportListForDownload
         /// </summary>
-        private List<string> GetUniqueProductFamilies(string salesOrderId, ITracingService tracingService)
+        private List<string> GetWordTemplateList(string salesOrderId, ITracingService tracingService)
         {
-            List<string> uniqueFamilies = new List<string>();
+            List<string> templateNames = new List<string>();
 
             try
             {
-                DA.OrderProductRepositry productRepo = new DA.OrderProductRepositry();
-                DataTable productData = productRepo.GetOrderProductDetail(salesOrderId);
+                // Use existing business logic to determine which templates are needed
+                BL.GetDetentionLetterReport reportLogic = new BL.GetDetentionLetterReport();
+                List<BL.LettersType> letterTypes = reportLogic.GetReportListForDownload(salesOrderId);
 
-                tracingService.Trace($"Retrieved {productData.Rows.Count} products from database");
+                tracingService.Trace($"Retrieved {letterTypes.Count} letter types from business logic");
 
-                if (productData != null && productData.Rows.Count > 0)
+                // Convert LettersType enum values to template names
+                foreach (BL.LettersType letterType in letterTypes)
                 {
-                    // Extract product families and make them unique
-                    HashSet<string> familySet = new HashSet<string>();
-
-                    foreach (DataRow row in productData.Rows)
-                    {
-                        if (row["ProductFamily"] != DBNull.Value)
-                        {
-                            string productFamily = row["ProductFamily"].ToString().Trim();
-
-                            if (!string.IsNullOrEmpty(productFamily))
-                            {
-                                familySet.Add(productFamily);
-                            }
-                        }
-                    }
-
-                    uniqueFamilies = familySet.OrderBy(f => f).ToList();
-                    tracingService.Trace($"Unique product families: {string.Join(", ", uniqueFamilies)}");
+                    string templateName = letterType.ToString();
+                    templateNames.Add(templateName);
+                    tracingService.Trace($"Template added: {templateName}");
                 }
+
+                tracingService.Trace($"Word templates: {string.Join(", ", templateNames)}");
             }
             catch (Exception ex)
             {
-                tracingService.Trace($"Error getting product families: {ex.Message}");
+                tracingService.Trace($"Error getting word template list: {ex.Message}");
                 throw;
             }
 
-            return uniqueFamilies;
+            return templateNames;
         }
 
         /// <summary>
