@@ -1,0 +1,9 @@
+# Strong Name Key Generation
+
+This file is a placeholder. To generate the actual strong name key, run the following command in Visual Studio Developer Command Prompt:
+
+```
+sn -k key.snk
+```
+
+This key is required to sign the assembly before deploying to Dynamics 365.
