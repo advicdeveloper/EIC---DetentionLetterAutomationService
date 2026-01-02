@@ -37,27 +37,42 @@ namespace CONTECH.Service.BusinessLogic
                             (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "CMP Detention - Voidsaver") ||
                             (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "CMP Detention - xFiltration")) //Added 602.2
                         {
-                            lstlettersTypes.Add(LettersType.CMPDetentionLetter);
+                            if (!lstlettersTypes.Contains(LettersType.CMPDetentionLetter))
+                            {
+                                lstlettersTypes.Add(LettersType.CMPDetentionLetter);
+                            }
                             continue;
                         }
                         else if (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "DuroMaxx Containment Tank")
                         {
-                            lstlettersTypes.Add(LettersType.DuroMaxxContainmentTankNotificationLetter);
+                            if (!lstlettersTypes.Contains(LettersType.DuroMaxxContainmentTankNotificationLetter))
+                            {
+                                lstlettersTypes.Add(LettersType.DuroMaxxContainmentTankNotificationLetter);
+                            }
                             continue;
                         }
                         else if ((Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "DuroMaxx Detention") ||
                                 (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "DuroMaxx Detention - VoidSaver"))
                         {
-                            lstlettersTypes.Add(LettersType.DuroMaxxDetentionLetter);
+                            if (!lstlettersTypes.Contains(LettersType.DuroMaxxDetentionLetter))
+                            {
+                                lstlettersTypes.Add(LettersType.DuroMaxxDetentionLetter);
+                            }
                             continue;
                         }
                         else if (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "UrbanGreen SRPE Cistern")
                         {
-                            lstlettersTypes.Add(LettersType.DuroMaxxCisternRWHLetter);
+                            if (!lstlettersTypes.Contains(LettersType.DuroMaxxCisternRWHLetter))
+                            {
+                                lstlettersTypes.Add(LettersType.DuroMaxxCisternRWHLetter);
+                            }
                             continue;
-                        } else if (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "DuroMaxx Sewer") 
+                        } else if (Convert.ToString(drSalesOrderDetail["productfamily"]).Trim() == "DuroMaxx Sewer")
                         {
-                            lstlettersTypes.Add(LettersType.DuroMaxxSewerLetter);
+                            if (!lstlettersTypes.Contains(LettersType.DuroMaxxSewerLetter))
+                            {
+                                lstlettersTypes.Add(LettersType.DuroMaxxSewerLetter);
+                            }
                             continue;
                         }
 
@@ -126,7 +141,10 @@ namespace CONTECH.Service.BusinessLogic
 
                                     if (isLarger)
                                     {
-                                        lstlettersTypes.Add(LettersType.CMPLargeDiameterLetter);
+                                        if (!lstlettersTypes.Contains(LettersType.CMPLargeDiameterLetter))
+                                        {
+                                            lstlettersTypes.Add(LettersType.CMPLargeDiameterLetter);
+                                        }
                                         continue;
                                     }
                                 }
@@ -160,7 +178,10 @@ namespace CONTECH.Service.BusinessLogic
 
                                     if (isLarger)
                                     {
-                                        lstlettersTypes.Add(LettersType.CMPLargeDiameterLetter);
+                                        if (!lstlettersTypes.Contains(LettersType.CMPLargeDiameterLetter))
+                                        {
+                                            lstlettersTypes.Add(LettersType.CMPLargeDiameterLetter);
+                                        }
                                         continue;
                                     }
                                 }
@@ -179,7 +200,10 @@ namespace CONTECH.Service.BusinessLogic
                                     }
                                     if (isLarger)
                                     {
-                                        lstlettersTypes.Add(LettersType.DuroMaxxLgDiameterLetter);
+                                        if (!lstlettersTypes.Contains(LettersType.DuroMaxxLgDiameterLetter))
+                                        {
+                                            lstlettersTypes.Add(LettersType.DuroMaxxLgDiameterLetter);
+                                        }
                                         continue;
                                     }
                                 }
@@ -215,7 +239,10 @@ namespace CONTECH.Service.BusinessLogic
                                     }
                                     if (isLarger)
                                     {
-                                        lstlettersTypes.Add(LettersType.DuroMaxxCisternRWHLetter);
+                                        if (!lstlettersTypes.Contains(LettersType.DuroMaxxCisternRWHLetter))
+                                        {
+                                            lstlettersTypes.Add(LettersType.DuroMaxxCisternRWHLetter);
+                                        }
                                         continue;
                                     }
                                 }
@@ -231,7 +258,7 @@ namespace CONTECH.Service.BusinessLogic
                 throw ex;
             }
 
-            return lstlettersTypes.Distinct().ToList();
+            return lstlettersTypes;
         }
 
         /// <summary>
